@@ -12,9 +12,10 @@ class ndfunc:
 
     def __init__(self, functions):
         self.functions = np.asarray(functions)
+        self.f = np.vectorize(lambda f, y: f(y))
 
     def __call__(self, x):
-        return np.vectorize(lambda f, y: f(y))(self.functions, x)
+        return self.f(self.functions, x)
 
     def reshape(self, *shape):
         freedims = sum(int(i < 0) for i in shape)
@@ -74,9 +75,10 @@ def lareg(flist, x, y, dy=None, V=None, justfit=False):
             y, 1))  # doing fit for equally weighed uncorrelated errors
         if justfit:
             return fit
+        d = len(flist)
         V = np.diag(
             np.full_like(x,
-                         np.sum((fit[3](x) - y)**2) / (N - len(flist))))  # calculating deviation
+                         np.sum((fit["fitfunc"](x) - y)**2) / (N - d)))  # calculating deviation
         fit[1] = np.linalg.inv(C.T.dot(np.linalg.inv(V)).dot(C))
         return fit
     elif V is None:  # build covariance matrix from uncorrelated errors
@@ -90,4 +92,4 @@ def lareg(flist, x, y, dy=None, V=None, justfit=False):
     TSS = np.sum(
         (y - y.mean())**2)  # calculations for the determination coefficient
     RSS = np.sum((regfunc(x) - y)**2)
-    return [a, V_a, 1 - RSS / TSS, regfunc]
+    return a, V_a, 1 - RSS / TSS, regfunc
